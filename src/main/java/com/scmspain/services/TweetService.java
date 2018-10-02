@@ -1,23 +1,27 @@
 package com.scmspain.services;
 
-import com.scmspain.entities.Tweet;
-import org.springframework.boot.actuate.metrics.writer.Delta;
-import org.springframework.boot.actuate.metrics.writer.MetricWriter;
-import org.springframework.stereotype.Service;
+import java.time.Instant;
+import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.springframework.boot.actuate.metrics.writer.Delta;
+import org.springframework.boot.actuate.metrics.writer.MetricWriter;
+import org.springframework.stereotype.Service;
+
+import com.scmspain.entities.Tweet;
+import com.scmspain.exceptions.TweetNotFoundException;
 
 @Service
 @Transactional
 public class TweetService {
-    private EntityManager entityManager;
-    private MetricWriter metricWriter;
+    private final EntityManager entityManager;
+    private final MetricWriter metricWriter;
 
-    public TweetService(EntityManager entityManager, MetricWriter metricWriter) {
+    public TweetService(final EntityManager entityManager, 
+    		            final MetricWriter metricWriter) {
         this.entityManager = entityManager;
         this.metricWriter = metricWriter;
     }
@@ -33,6 +37,7 @@ public class TweetService {
             Tweet tweet = new Tweet();
             tweet.setTweet(text);
             tweet.setPublisher(publisher);
+            tweet.setPublicationDateTime(Instant.now());
 
             this.metricWriter.increment(new Delta<Number>("published-tweets", 1));
             this.entityManager.persist(tweet);
@@ -51,18 +56,41 @@ public class TweetService {
     }
 
     /**
-      Recover tweet from repository
-      Parameter - id - id of the Tweet to retrieve
-      Result - retrieved Tweet
+      Recover tweets from repository
+      Result - retrieved lost of Tweet
     */
     public List<Tweet> listAllTweets() {
-        List<Tweet> result = new ArrayList<Tweet>();
         this.metricWriter.increment(new Delta<Number>("times-queried-tweets", 1));
-        TypedQuery<Long> query = this.entityManager.createQuery("SELECT id FROM Tweet AS tweetId WHERE pre2015MigrationStatus<>99 ORDER BY id DESC", Long.class);
-        List<Long> ids = query.getResultList();
-        for (Long id : ids) {
-            result.add(getTweet(id));
-        }
-        return result;
+        TypedQuery<Tweet> query = this.entityManager.createQuery("FROM Tweet WHERE pre2015MigrationStatus<>99 AND discardedDateTime=NULL "
+        		+ "ORDER BY publicationDateTime DESC", Tweet.class);
+        return query.getResultList();
     }
+
+    /**
+    Discard tweet from repository
+    Parameter - id - id of the Tweet to discard
+    Result - discarded Tweet
+  */
+	public void discardTweet(Long tweetId) {
+		Tweet tweet = getTweet(tweetId);
+		if (tweet == null)
+			throw new TweetNotFoundException(tweetId);
+		
+		tweet.setDiscardedDateTime(Instant.now());
+		this.metricWriter.increment(new Delta<Number>("discarded-tweets", 1));
+		this.entityManager.merge(tweet);
+	}
+
+    /**
+    Recover discarded tweets from repository
+    Result - retrieved list of discard Tweets
+  */
+	public List<Tweet> listAllDiscardedTweets() {
+        this.metricWriter.increment(new Delta<Number>("times-queried-discarded-tweets", 1));
+
+        TypedQuery<Tweet> query = this.entityManager.createQuery("FROM Tweet WHERE pre2015MigrationStatus<>99 AND discardedDateTime<>NULL"
+        		+ " ORDER BY discardedDateTime DESC", Tweet.class);
+        return query.getResultList();
+	}
+	
 }
