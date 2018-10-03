@@ -9,6 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -22,10 +23,12 @@ public class Tweet {
     private Long id;
     
     @Column(nullable = false)
+    @NotNull
     @Size(min=1)
     private String publisher;
     
     @Column(nullable = false, length = 140)
+    @NotNull
     @Size(min=1, max = 140)
     private String tweet;
     

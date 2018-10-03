@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.EntityManager;
 import javax.validation.ValidationException;
 
 import org.junit.Before;
@@ -18,25 +17,26 @@ import org.springframework.boot.actuate.metrics.writer.MetricWriter;
 import com.scmspain.entities.Link;
 import com.scmspain.entities.Tweet;
 import com.scmspain.exceptions.TweetNotFoundException;
+import com.scmspain.repository.TweetRepository;
 
 public class TweetServiceTest {
-    private EntityManager entityManager;
     private MetricWriter metricWriter;
     private TweetService tweetService;
+    private TweetRepository repository;
 
     @Before
     public void setUp() throws Exception {
-        this.entityManager = mock(EntityManager.class);
+        this.repository = mock(TweetRepository.class);
         this.metricWriter = mock(MetricWriter.class);
 
-        this.tweetService = new TweetService(entityManager, metricWriter);
+        this.tweetService = new TweetService(metricWriter, repository);
     }
 
     @Test
     public void shouldInsertANewTweet() throws Exception {
         tweetService.publishTweet("Guybrush Threepwood", "I am Guybrush Threepwood, mighty pirate.");
 
-        verify(entityManager).persist(any(Tweet.class));
+        verify(repository).save(any(Tweet.class));
     }
 
     @Test(expected = ValidationException.class)
@@ -54,6 +54,16 @@ public class TweetServiceTest {
         tweetService.publishTweet("", "I am Guybrush Threepwood, mighty pirate.");
     }
     
+    @Test(expected = ValidationException.class)
+    public void shouldThrowAnExceptionWhenNullPubliser() throws Exception {
+        tweetService.publishTweet(null, "I am Guybrush Threepwood, mighty pirate.");
+    }
+    
+    @Test(expected = ValidationException.class)
+    public void shouldThrowAnExceptionWhenNullTweet() throws Exception {
+        tweetService.publishTweet("Maria", null);
+    }
+    
     @Test
     public void shouldInsertANewTweetWithLinks() throws Exception {
     	List<Link> links = new ArrayList<>();
@@ -61,7 +71,7 @@ public class TweetServiceTest {
     	links.add(new Link("http://google.com", 10));
         tweetService.publishTweet("Guybrush Threepwood", "I am Guybrush Threepwood, mighty pirate.");
 
-        verify(entityManager).persist(any(Tweet.class));
+        verify(repository).save(any(Tweet.class));
     }
     
     @Test(expected = TweetNotFoundException.class)
@@ -71,9 +81,9 @@ public class TweetServiceTest {
     
     @Test
     public void shouldDiscardATweet() throws Exception {
-        when(entityManager.find(Tweet.class, 1L)).thenReturn(new Tweet());
+        when(repository.findOne(1L)).thenReturn(new Tweet());
         tweetService.discardTweet(1L);
-        verify(entityManager).merge(any(Tweet.class));
+        verify(repository).save(any(Tweet.class));
     }
     
 }

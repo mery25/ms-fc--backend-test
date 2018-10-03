@@ -1,12 +1,11 @@
 package com.scmspain.services;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -21,20 +20,21 @@ import org.springframework.stereotype.Service;
 import com.scmspain.entities.Link;
 import com.scmspain.entities.Tweet;
 import com.scmspain.exceptions.TweetNotFoundException;
+import com.scmspain.repository.TweetRepository;
 import com.scmspain.utils.PatternExtractor;
 
 @Service
 @Transactional
 public class TweetService {
-	
-    private final EntityManager entityManager;
+
     private final MetricWriter metricWriter;
     private final Validator validator;
-
-    public TweetService(final EntityManager entityManager, 
-    		            final MetricWriter metricWriter) {
-        this.entityManager = entityManager;
+    private final TweetRepository tweetRepository;
+    
+    public TweetService(final MetricWriter metricWriter,
+    		            final TweetRepository repository) {
         this.metricWriter = metricWriter;
+        this.tweetRepository = repository;
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         this.validator = factory.getValidator();
     }
@@ -46,20 +46,22 @@ public class TweetService {
       Result - recovered Tweet
     */
     public void publishTweet(String publisher, String text) {
-    	PatternExtractor patternExtractor = new PatternExtractor(Link.REGEX_PATTERN, text);
-    	patternExtractor.extract();
-    	List<Link> links = patternExtractor.getExtractedPatternMap().entrySet()
-    			                                                    .stream()
-    			                                                    .map((e) -> new Link(e.getValue(), e.getKey()))
-    			                                                    .collect(Collectors.toList());
-    	String convertedText = patternExtractor.getText();
-		Tweet tweet = new Tweet(convertedText, publisher, links);
+    	List<Link> links = new ArrayList<>();
+    	if (text != null) {
+	    	PatternExtractor patternExtractor = new PatternExtractor(Link.REGEX_PATTERN, text);
+	    	patternExtractor.extract();
+	    	links = patternExtractor.getExtractedPatternMap().entrySet().stream()
+	    			                                                    .map((e) -> new Link(e.getValue(), e.getKey()))
+	    			                                                    .collect(Collectors.toList());
+	    	text = patternExtractor.getText();
+    	}
+		Tweet tweet = new Tweet(text, publisher, links);
 		Set<ConstraintViolation<Tweet>> constraints = validator.validate(tweet);
 		if (constraints.size() != 0)
 			throw new ConstraintViolationException(constraints);
 
 		this.metricWriter.increment(new Delta<Number>("published-tweets", 1));
-		this.entityManager.persist(tweet);
+		tweetRepository.save(tweet);
     }
 
     /**
@@ -68,7 +70,7 @@ public class TweetService {
       Result - retrieved Tweet
     */
     public Tweet getTweet(Long id) {
-      return this.entityManager.find(Tweet.class, id);
+    	return tweetRepository.findOne(id);
     }
 
     /**
@@ -77,9 +79,7 @@ public class TweetService {
     */
     public List<Tweet> listAllTweets() {
         this.metricWriter.increment(new Delta<Number>("times-queried-tweets", 1));
-        TypedQuery<Tweet> query = this.entityManager.createQuery("FROM Tweet WHERE pre2015MigrationStatus<>99 AND discardedDateTime=NULL "
-        		+ "ORDER BY publicationDateTime DESC", Tweet.class);
-        return query.getResultList();
+        return tweetRepository.findAllSortedByPublicationDate();
     }
 
     /**
@@ -89,12 +89,12 @@ public class TweetService {
   */
 	public void discardTweet(Long tweetId) {
 		Tweet tweet = getTweet(tweetId);
-		if (tweet == null)
+		if (tweet == null || tweet.getDiscardedDateTime() != null)
 			throw new TweetNotFoundException(tweetId);
 		
 		tweet.setDiscardedDateTime(Instant.now());
 		this.metricWriter.increment(new Delta<Number>("discarded-tweets", 1));
-		this.entityManager.merge(tweet);
+		tweetRepository.save(tweet);
 	}
 
     /**
@@ -103,10 +103,7 @@ public class TweetService {
   */
 	public List<Tweet> listAllDiscardedTweets() {
         this.metricWriter.increment(new Delta<Number>("times-queried-discarded-tweets", 1));
-
-        TypedQuery<Tweet> query = this.entityManager.createQuery("FROM Tweet WHERE pre2015MigrationStatus<>99 AND discardedDateTime<>NULL"
-        		+ " ORDER BY discardedDateTime DESC", Tweet.class);
-        return query.getResultList();
+        return tweetRepository.findAllDiscardedSortedByDiscardedDate();
 	}
 	
 }

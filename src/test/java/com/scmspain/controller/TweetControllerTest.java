@@ -82,13 +82,6 @@ public class TweetControllerTest {
     }
     
     @Test
-    public void shouldReturn200WhenDiscardingATweet() throws Exception {
-    	newTweet("Prospect", "Breaking the law");
-        mockMvc.perform(discardTweet(1L))
-               .andExpect(status().is(204));
-    }
-    
-    @Test
     public void shouldReturn404WhenDiscardingNotExistingTweet() throws Exception {
     	newTweet("Prospect", "Breaking the law");
         mockMvc.perform(discardTweet(2L))
@@ -101,7 +94,7 @@ public class TweetControllerTest {
         .andExpect(status().is(201));
         mockMvc.perform(newTweet("Maria", "How are you?"))
         .andExpect(status().is(201));
-        mockMvc.perform(discardTweet(1L))
+        mockMvc.perform(discardTweet(2L))
         .andExpect(status().is(204));
 
         MvcResult getResult = mockMvc.perform(get("/discarded"))

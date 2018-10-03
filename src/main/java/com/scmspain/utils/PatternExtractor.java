@@ -13,6 +13,9 @@ public final class PatternExtractor {
 	private String text;
 	
 	public PatternExtractor(final String pattern, final String text) {
+		if (pattern == null || text == null)
+			throw new IllegalArgumentException();
+		
 		this.pattern = pattern;
 		this.text = text;
 	}
