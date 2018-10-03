@@ -7,7 +7,7 @@ public class TweetNotFoundException extends RuntimeException {
 	private final Long tweet;
 	
 	public TweetNotFoundException(Long tweet) {
-		super("No Tweet found with id " + tweet);
+		super("No Tweet published found with id " + tweet);
 		this.tweet = tweet;
 	}
 
