@@ -11,4 +11,5 @@ public class DiscardTweetCommand {
 	public void setTweetId(Long tweetId) {
 		this.tweetId = tweetId;
 	}
+	
 }

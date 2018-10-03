@@ -7,7 +7,8 @@ import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
+import javax.validation.ValidationException;
+
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,7 +40,8 @@ public class TweetController {
     @PostMapping("/tweet")
     @ResponseStatus(CREATED)
     public void publishTweet(@RequestBody PublishTweetCommand publishTweetCommand) {
-        this.tweetService.publishTweet(publishTweetCommand.getPublisher(), publishTweetCommand.getTweet());
+        this.tweetService.publishTweet(publishTweetCommand.getPublisher(), 
+        		                       publishTweetCommand.getTweet());
     }
     
     @GetMapping("/discarded")
@@ -53,10 +55,10 @@ public class TweetController {
         this.tweetService.discardTweet(discardTweetCommand.getTweetId());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler(ValidationException.class)
     @ResponseStatus(BAD_REQUEST)
     @ResponseBody
-    public Object invalidArgumentException(IllegalArgumentException ex) {
+    public Object invalidValidationException(ValidationException ex) {
         return new Object() {
             public String message = ex.getMessage();
             public String exceptionClass = ex.getClass().getSimpleName();

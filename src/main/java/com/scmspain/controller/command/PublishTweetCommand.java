@@ -1,10 +1,11 @@
 package com.scmspain.controller.command;
 
 public class PublishTweetCommand {
+
     private String publisher;
     private String tweet;
 
-    public String getPublisher() {
+	public String getPublisher() {
         return publisher;
     }
 
@@ -17,6 +18,7 @@ public class PublishTweetCommand {
     }
 
     public void setTweet(String tweet) {
-        this.tweet = tweet;
+    	this.tweet = tweet;
     }
+    
 }

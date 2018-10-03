@@ -27,6 +27,7 @@ import com.scmspain.configuration.TestConfiguration;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestConfiguration.class)
 public class TweetControllerTest {
+	
     @Autowired
     private WebApplicationContext context;
     
@@ -44,8 +45,14 @@ public class TweetControllerTest {
     }
 
     @Test
-    public void shouldReturn400WhenInsertingAnInvalidTweet() throws Exception {
+    public void shouldReturn200WhenInsertingAValidTweetWithLinks() throws Exception {
         mockMvc.perform(newTweet("Schibsted Spain", "We are Schibsted Spain (look at our home page http://www.schibsted.es/), we own Vibbo, InfoJobs, fotocasa, coches.net and milanuncios. Welcome!"))
+                .andExpect(status().is(201));
+    }
+    
+    @Test
+    public void shouldReturn400WhenInsertingAnInvalidTweet() throws Exception {
+        mockMvc.perform(newTweet("Schibsted Spain", "We are Schibsted Spain (look at our home page http://www.schibsted.es/), we own Vibbo, InfoJobs, fotocasa, coches.net and milanuncios. Welcome! This is the schibsted test for the candidates interview."))
                 .andExpect(status().is(400));
     }
 

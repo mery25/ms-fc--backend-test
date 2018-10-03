@@ -2,28 +2,41 @@ package com.scmspain.services;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
 import org.springframework.boot.actuate.metrics.writer.Delta;
 import org.springframework.boot.actuate.metrics.writer.MetricWriter;
 import org.springframework.stereotype.Service;
 
+import com.scmspain.entities.Link;
 import com.scmspain.entities.Tweet;
 import com.scmspain.exceptions.TweetNotFoundException;
+import com.scmspain.utils.PatternExtractor;
 
 @Service
 @Transactional
 public class TweetService {
+	
     private final EntityManager entityManager;
     private final MetricWriter metricWriter;
+    private final Validator validator;
 
     public TweetService(final EntityManager entityManager, 
     		            final MetricWriter metricWriter) {
         this.entityManager = entityManager;
         this.metricWriter = metricWriter;
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        this.validator = factory.getValidator();
     }
 
     /**
@@ -33,17 +46,20 @@ public class TweetService {
       Result - recovered Tweet
     */
     public void publishTweet(String publisher, String text) {
-        if (publisher != null && publisher.length() > 0 && text != null && text.length() > 0 && text.length() < 140) {
-            Tweet tweet = new Tweet();
-            tweet.setTweet(text);
-            tweet.setPublisher(publisher);
-            tweet.setPublicationDateTime(Instant.now());
+    	PatternExtractor patternExtractor = new PatternExtractor(Link.REGEX_PATTERN, text);
+    	patternExtractor.extract();
+    	List<Link> links = patternExtractor.getExtractedPatternMap().entrySet()
+    			                                                    .stream()
+    			                                                    .map((e) -> new Link(e.getValue(), e.getKey()))
+    			                                                    .collect(Collectors.toList());
+    	String convertedText = patternExtractor.getText();
+		Tweet tweet = new Tweet(convertedText, publisher, links);
+		Set<ConstraintViolation<Tweet>> constraints = validator.validate(tweet);
+		if (constraints.size() != 0)
+			throw new ConstraintViolationException(constraints);
 
-            this.metricWriter.increment(new Delta<Number>("published-tweets", 1));
-            this.entityManager.persist(tweet);
-        } else {
-            throw new IllegalArgumentException("Tweet must not be greater than 140 characters");
-        }
+		this.metricWriter.increment(new Delta<Number>("published-tweets", 1));
+		this.entityManager.persist(tweet);
     }
 
     /**
