@@ -5,8 +5,10 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
+import com.scmspain.utils.TextElement;
+
 @Entity
-public class Link {
+public class Link implements TextElement {
 
 	public static final String REGEX_PATTERN = "\\b(http|https)://\\S+\\b";
 	
@@ -15,26 +17,28 @@ public class Link {
     private Long id;
     
     @Column(nullable = false)
-	private String text;
+	private String value;
     
     @Column(nullable = false)
-	private int position;
+	private int index;
 
     public Link() {
 	}
     
-	public Link(String text, int position) {
+	public Link(String text, int index) {
 		super();
-		this.text = text;
-		this.position = position;
+		this.value = text;
+		this.index = index;
 	}
 
-	public String getLinkText() {
-		return text;
+	@Override
+	public int getIndex() {
+		return index;
 	}
 
-	public int getPosition() {
-		return position;
+	@Override
+	public String getValue() {
+		return value;
 	}
 
 	public Long getId() {
@@ -47,7 +51,7 @@ public class Link {
     
 	@Override
 	public String toString() {
-		return "Link [linkText=" + text + ", position=" + position + "]";
+		return "Link [linkText=" + value + ", position=" + index + "]";
 	}
 
 }

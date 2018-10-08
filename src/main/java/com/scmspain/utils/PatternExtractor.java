@@ -3,44 +3,49 @@ package com.scmspain.utils;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class PatternExtractor {
-	
-	private final String pattern;
-	private final Map<Integer, String> extractedPatternMap = new TreeMap<>();
-	private String text;
-	
-	public PatternExtractor(final String pattern, final String text) {
-		if (pattern == null || text == null)
-			throw new IllegalArgumentException();
-		
-		this.pattern = pattern;
-		this.text = text;
-	}
-	
-	public void extract() {
+import com.scmspain.utils.PatternExtractor.PatternExtractorResult;
+
+public class PatternExtractor implements BiFunction<String, String, PatternExtractorResult> {
+
+	@Override
+	public PatternExtractorResult apply(String pattern, String text) {
+		Map<Integer, String> extractedPatternMap = new TreeMap<>();
 		extractedPatternMap.clear();
 		Pattern r = Pattern.compile(pattern);
 		Matcher m = r.matcher(text);
 		StringBuffer sb = new StringBuffer(text.length());
 		while (m.find()) {
-			String text = m.group(0);
+			text = m.group(0);
 			int position = m.start(0);
 			extractedPatternMap.put(position, text);
 			m.appendReplacement(sb, "");
 		}
 		m.appendTail(sb);
-		this.text = sb.toString();
+		return new PatternExtractorResult(extractedPatternMap, sb.toString());
 	}
+	
+	public final class PatternExtractorResult {
+		
+		private final Map<Integer, String> extractedPatternMap;
+		private final String text;
+		
+		public PatternExtractorResult(final Map<Integer, String> extractedPatternMap, final String text) {
+			this.extractedPatternMap = extractedPatternMap;
+			this.text = text;
+		}
 
-	public Map<Integer, String> getExtractedPatternMap() {
-		return Collections.unmodifiableMap(extractedPatternMap);
-	}
+		public Map<Integer, String> getExtractedPatternMap() {
+			return Collections.unmodifiableMap(extractedPatternMap);
+		}
 
-	public String getText() {
-		return text;
+		public String getText() {
+			return text;
+		}
+		
 	}
 
 }

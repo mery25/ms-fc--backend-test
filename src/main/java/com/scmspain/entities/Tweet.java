@@ -14,6 +14,7 @@ import javax.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.scmspain.utils.TextElementInserter;
 
 @Entity
 public class Tweet {
@@ -108,35 +109,7 @@ public class Tweet {
 	}
 
 	private String insertLinksOnTweet(String text, List<Link> links) {
-		if (links.size() == 0)
-			return text;
-		
-		char[] letters = text.toCharArray();
-		StringBuffer sb = new StringBuffer();
-		int lCounter = 0;
-		int idxLinks = 0;
-		int i = 0;
-		Link link = links.get(idxLinks);
-		String linkText = link.getLinkText();
-		
-		while (i < letters.length && idxLinks < links.size()) {
-			link = links.get(idxLinks);
-			if (lCounter == link.getPosition()) {
-				linkText = link.getLinkText();
-				sb.append(linkText);
-				lCounter += linkText.length();
-				++idxLinks;
-			}
-			else {
-				sb.append(letters[i++]);
-				++lCounter;
-			}
-		}
-		
-		while (i < letters.length) 
-			sb.append(letters[i++]);
-		
-		return sb.toString();
+		return new TextElementInserter().apply(text, links);
 	}
 
 }

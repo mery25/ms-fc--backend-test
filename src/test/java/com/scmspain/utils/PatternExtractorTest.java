@@ -1,6 +1,9 @@
 package com.scmspain.utils;
 
 import org.junit.Test;
+
+import com.scmspain.utils.PatternExtractor.PatternExtractorResult;
+
 import static org.junit.Assert.assertEquals;
 
 public class PatternExtractorTest {
@@ -10,11 +13,10 @@ public class PatternExtractorTest {
     	String pattern = "\\b(http|https)://\\S+\\b";
     	String text = "Hey http://foogle.co";
     	String expectedText = "Hey ";
-    	PatternExtractor patternExtractor = new PatternExtractor(pattern, text);
-    	patternExtractor.extract();
-    	int extractedPatterns = patternExtractor.getExtractedPatternMap().entrySet().size();
+    	PatternExtractorResult patternExtractorResult = new PatternExtractor().apply(pattern, text);
+    	int extractedPatterns = patternExtractorResult.getExtractedPatternMap().entrySet().size();
     	assertEquals(1, extractedPatterns);
-    	assertEquals(expectedText, patternExtractor.getText());
+    	assertEquals(expectedText, patternExtractorResult.getText());
     }
     
     @Test
@@ -22,11 +24,10 @@ public class PatternExtractorTest {
     	String pattern = "\\b(http|https)://\\S+\\b";
     	String text = "http://foogle.co Hey How are u?";
     	String expectedText = " Hey How are u?";
-    	PatternExtractor patternExtractor = new PatternExtractor(pattern, text);
-    	patternExtractor.extract();
-    	int extractedPatterns = patternExtractor.getExtractedPatternMap().entrySet().size();
+    	PatternExtractorResult patternExtractorResult = new PatternExtractor().apply(pattern, text);
+    	int extractedPatterns = patternExtractorResult.getExtractedPatternMap().entrySet().size();
     	assertEquals(1, extractedPatterns);
-    	assertEquals(expectedText, patternExtractor.getText());
+    	assertEquals(expectedText, patternExtractorResult.getText());
     }
     
     @Test
@@ -34,11 +35,10 @@ public class PatternExtractorTest {
     	String pattern = "\\b(http|https)://\\S+\\b";
     	String text = "Hey http://foogle.co bla https://foogle.co bla bla ";
     	String expectedText = "Hey  bla  bla bla ";
-    	PatternExtractor patternExtractor = new PatternExtractor(pattern, text);
-    	patternExtractor.extract();
-    	int extractedPatterns = patternExtractor.getExtractedPatternMap().entrySet().size();
+    	PatternExtractorResult patternExtractorResult = new PatternExtractor().apply(pattern, text);
+    	int extractedPatterns = patternExtractorResult.getExtractedPatternMap().entrySet().size();
     	assertEquals(2, extractedPatterns);
-    	assertEquals(expectedText, patternExtractor.getText());
+    	assertEquals(expectedText, patternExtractorResult.getText());
     }
     
 }

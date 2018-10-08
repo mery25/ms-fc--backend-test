@@ -22,6 +22,7 @@ import com.scmspain.entities.Tweet;
 import com.scmspain.exceptions.TweetNotFoundException;
 import com.scmspain.repository.TweetRepository;
 import com.scmspain.utils.PatternExtractor;
+import com.scmspain.utils.PatternExtractor.PatternExtractorResult;
 
 @Service
 @Transactional
@@ -48,12 +49,11 @@ public class TweetService {
     public void publishTweet(String publisher, String text) {
     	List<Link> links = new ArrayList<>();
     	if (text != null) {
-	    	PatternExtractor patternExtractor = new PatternExtractor(Link.REGEX_PATTERN, text);
-	    	patternExtractor.extract();
-	    	links = patternExtractor.getExtractedPatternMap().entrySet().stream()
-	    			                                                    .map((e) -> new Link(e.getValue(), e.getKey()))
-	    			                                                    .collect(Collectors.toList());
-	    	text = patternExtractor.getText();
+    		PatternExtractorResult patternExtractorResult = new PatternExtractor().apply(Link.REGEX_PATTERN, text);
+	    	links = patternExtractorResult.getExtractedPatternMap().entrySet().stream()
+	    			                                               .map((e) -> new Link(e.getValue(), e.getKey()))
+	    			                                               .collect(Collectors.toList());
+	    	text = patternExtractorResult.getText();
     	}
 		Tweet tweet = new Tweet(text, publisher, links);
 		Set<ConstraintViolation<Tweet>> constraints = validator.validate(tweet);
